@@ -26,7 +26,7 @@ class Result[T]:
         return self._value is None
 
     @property
-    def expect(self) -> T:
+    def value(self) -> T:
         assert self._value is not None
         return self._value
 

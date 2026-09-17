@@ -7,6 +7,8 @@ from sqlalchemy import Enum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+COMMON_TABLE_ARGS: dict[str, str] = dict(schema="short_url")
+
 
 class Base(DeclarativeBase):
     pass
@@ -20,6 +22,7 @@ class SurlStatus(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = dict().update(COMMON_TABLE_ARGS)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -41,11 +44,11 @@ class User(Base):
 
 class Url(Base):
     __tablename__ = "url"
+    __table_args__ = dict().update(COMMON_TABLE_ARGS)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4
+    url_hash: Mapped[str] = mapped_column(
+        String(64),
+        primary_key=True
     )
     original_url: Mapped[str] = mapped_column(
         Text,
@@ -56,14 +59,12 @@ class Url(Base):
         nullable=False
     )
 
-    surls: Mapped[List["Surl"]] = relationship(
-        "Surl",
-        back_populates="url"
-    )
+    surls: Mapped[List["Surl"]] = relationship("Surl", back_populates="url")
 
 
 class Surl(Base):
     __tablename__ = "surl"
+    __table_args__ = dict().update(COMMON_TABLE_ARGS)
 
     surl: Mapped[str] = mapped_column(
         String(7),
@@ -74,9 +75,9 @@ class Surl(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
-    url_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("url.id", ondelete="RESTRICT"),
+    url_hash: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("url.url_hash", ondelete="RESTRICT"),
         nullable=False
     )
     status: Mapped[SurlStatus] = mapped_column(
@@ -90,11 +91,5 @@ class Surl(Base):
     )
     expires_at: Mapped[datetime] = mapped_column(nullable=False)
 
-    user: Mapped["User"] = relationship(
-        "User",
-        back_populates="surls"
-    )
-    url: Mapped["Url"] = relationship(
-        "Url",
-        back_populates="surls"
-    )
+    user: Mapped["User"] = relationship("User", back_populates="surls")
+    url: Mapped["Url"] = relationship("Url", back_populates="surls")

@@ -52,7 +52,7 @@ class ConfigManager:
         return params
 
 
-POSTGRES_SECTION: str = "POSTGRESS"
+POSTGRES_SECTION: str = "POSTGRES"
 
 
 class PostgresParams(NamedTuple):

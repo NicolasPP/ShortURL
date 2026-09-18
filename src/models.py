@@ -11,6 +11,13 @@ COMMON_TABLE_ARGS: dict[str, str] = dict(schema="short_url")
 
 
 class Base(DeclarativeBase):
+    def __repr__(self) -> str:
+        columns: list[str] = []
+        for col in self.__table__.columns:
+            columns += f"{col.name}={getattr(self, col.name)!r}"
+
+        return f"<{self.__class__.__name__}({''.join(columns)})>"
+
     pass
 
 

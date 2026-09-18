@@ -1,15 +1,15 @@
 from logging import Logger, getLogger
 
-from api import Result, ShortUrlApi
-from config_manager import ConfigManager
-from models import User
+from short_url.api import Result, ShortUrlApi
+from short_url.config_manager import ConfigManager
+from short_url.models import User
 
 CONFIG_FILE: str = r"config.ini"
 
 
 def main() -> None:
     _log: Logger = getLogger("ShortUrlApi")
-    api: ShortUrlApi = ShortUrlApi()
+    api: ShortUrlApi = ShortUrlApi.production()
     user: Result[User] = api.add_user("add_user_test3@email.com")
 
     if user.failed:

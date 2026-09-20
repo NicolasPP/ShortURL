@@ -21,3 +21,12 @@ CREATE TABLE IF NOT EXISTS short_url.surl (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL
 );
+
+CREATE TABLE clicks (
+    id BIGSERIAL PRIMARY KEY,
+    surl VARCHAR(7) NOT NULL REFERENCES surl(surl) ON DELETE CASCADE,
+    clicked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Group by surl, sorted by clicked at. Optimized for traffic calculations
+CREATE INDEX click_rate ON clicks (surl, clicked_at);

@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from typing import Iterator, Optional, Self
 
-from sqlalchemy import Select
+from sqlalchemy import Select, func
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.database_manager import DatabaseManager
-from short_url.models import Surl, SurlStatus, Url, User
+from short_url.models import Click, Surl, SurlStatus, Url, User
 from short_url.surl_generator import generate_surl
 
 MAX_SURL_RETRIES: int = 5
@@ -154,10 +154,7 @@ class ShortUrlApi:
                 session.refresh(surl)
                 return Result.success(surl)
 
-            except IntegrityError as err:
-                session.rollback()
-                return Result.failure(f"{err.orig}")
-            except DBAPIError as err:
+            except (IntegrityError, DBAPIError) as err:
                 session.rollback()
                 return Result.failure(f"{err.orig}")
 
@@ -173,5 +170,60 @@ class ShortUrlApi:
                 return Result.success(surl)
 
             except DBAPIError as err:
+                session.rollback()
+                return Result.failure(f"{err.orig}")
+
+    def add_click(self, raw_surl: str) -> Result[Click]:
+        if (surl := self.get_surl(raw_surl)).failed:
+            return Result.failure(surl.reason)
+
+        click: Click = Click(
+            surl=surl.value.surl,
+            clicked_at=datetime.now()
+        )
+
+        with self._database.get_session() as session:
+            try:
+                session.add(click)
+                session.commit()
+                session.refresh(click)
+                return Result.success(click)
+
+            except (IntegrityError, DBAPIError) as err:
+                session.rollback()
+                return Result.failure(f"{err.orig}")
+
+    def get_click_count(self, raw_surl: str) -> Result[int]:
+        if (surl := self.get_surl(raw_surl)).failed:
+            return Result.failure(surl.reason)
+
+        with self._database.get_session() as session:
+            try:
+                query: Select[tuple[int]] = Select(func.count(Click.id)) \
+                    .where(Click.surl == surl.value.surl)
+                click_count: int = session.scalar(query) or 0
+                return Result.success(click_count)
+
+            except (IntegrityError, DBAPIError) as err:
+                session.rollback()
+                return Result.failure(f"{err.orig}")
+
+    def get_click_traffic(self, raw_surl: str, window: timedelta) -> Result[float]:
+        if (minutes := window.total_seconds() / 60.0) <= 0:
+            return Result.failure("Time Window must be greater than 0")
+
+        if (surl := self.get_surl(raw_surl)).failed:
+            return Result.failure(surl.reason)
+
+        with self._database.get_session() as session:
+            try:
+                query: Select[tuple[int]] = Select(func.count(Click.id)) \
+                    .where(Click.surl == surl.value.surl) \
+                    .where(Click.clicked_at >= datetime.now() - window)
+
+                clicks: int = session.scalar(query) or 0
+                return Result.success(clicks / minutes)
+
+            except (IntegrityError, DBAPIError) as err:
                 session.rollback()
                 return Result.failure(f"{err.orig}")

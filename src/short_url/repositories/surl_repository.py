@@ -14,7 +14,7 @@ from short_url.surl_generator import generate_surl
 MAX_SURL_RETRIES: int = 5
 SURL_FAILED_TO_GENERATE_ERR: str = f"Could not create SURL after {MAX_SURL_RETRIES} attempts"
 
-SURL_COST: Decimal = Decimal(5.0)
+SURL_COST: Decimal = Decimal("5.00")
 INSUFFICIENT_BALANCE_ERR: str = "Insufficient funds: Balance is {user_balance:.2f}, required {surl_cost:.2f}"
 
 
@@ -47,14 +47,12 @@ class SurlRepository(Repository):
 
             try:
                 with self._session.begin_nested():
-                    # Deduct balance inside the savepoint
                     user.balance -= SURL_COST
                     self._session.add(surl)
                     self._session.flush()
                     return Result.success(surl)
 
             except IntegrityError:
-                # Savepoint automatically rolls back user.balance change on collision
                 continue
 
             except DBAPIError as err:

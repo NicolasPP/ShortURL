@@ -9,11 +9,11 @@ from short_url.config_manager import ConfigManager
 from short_url.database_manager import DatabaseManager
 from short_url.models import Url, User
 from short_url.repositories import SurlRepository, UrlRepository, UserRepository
+from short_url.repositories.surl_repository import SURL_COST
 from short_url.unit_of_work import UnitOfWork
 
 EMAIL: str = "user@email.com"
 URL: str = "https://example.com/long-page"
-BALANCE: str = "5.00"
 CONFIG_FILE: str = r"config.ini"
 CLEAN_USERS: text = text("DELETE FROM short_url.users WHERE email = :email")
 CLEAN_URLS: text = text("DELETE FROM short_url.url WHERE original_url = :url")
@@ -25,7 +25,7 @@ def setup_data(uow: UnitOfWork) -> None:
         urls: UrlRepository = UrlRepository(session)
 
         user: User = users.add(EMAIL).value
-        user.balance = Decimal(BALANCE)
+        user.balance = Decimal(SURL_COST)
         assert not urls.add(URL).failed, "Expected get url not to fail"
         session.commit()
 

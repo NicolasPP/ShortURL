@@ -1,16 +1,21 @@
 import enum
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import List
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Index, String, Text, func
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, Enum, ForeignKey, Index, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-COMMON_TABLE_ARGS: dict[str, str] = dict(schema="short_url")
+SCHEMA_NAME: str = "short_url"
+COMMON_TABLE_ARGS: dict[str, str] = dict(schema=SCHEMA_NAME)
 
 
 class Base(DeclarativeBase):
+
+    __table_args__ = dict(schema=SCHEMA_NAME)
+
     def __repr__(self) -> str:
         # TODO: fix this mess
         columns: list[str] = []
@@ -28,7 +33,10 @@ class SurlStatus(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = dict().update(COMMON_TABLE_ARGS)
+    __table_args__ = (
+        CheckConstraint("balance >= 0", name="check_user_balance_non_negative"),
+        COMMON_TABLE_ARGS,
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -40,6 +48,11 @@ class User(Base):
         unique=True,
         nullable=False
     )
+    balance: Mapped[Decimal] = mapped_column(
+        Numeric(precision=12, scale=2),
+        nullable=False,
+        default=Decimal("0.00"),
+    )
 
     surls: Mapped[List["Surl"]] = relationship(
         "Surl",
@@ -50,7 +63,6 @@ class User(Base):
 
 class Url(Base):
     __tablename__ = "url"
-    __table_args__ = dict().update(COMMON_TABLE_ARGS)
 
     url_hash: Mapped[str] = mapped_column(
         String(64),
@@ -70,9 +82,6 @@ class Url(Base):
 
 class Surl(Base):
     __tablename__ = "surl"
-    __table_args__ = dict(
-
-    ).update(COMMON_TABLE_ARGS)
 
     surl: Mapped[str] = mapped_column(
         String(7),
@@ -80,12 +89,12 @@ class Surl(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("short_url.users.id", ondelete="CASCADE"),
         nullable=False
     )
     url_hash: Mapped[str] = mapped_column(
         String(64),
-        ForeignKey("url.url_hash", ondelete="RESTRICT"),
+        ForeignKey("short_url.url.url_hash", ondelete="RESTRICT"),
         nullable=False
     )
     status: Mapped[SurlStatus] = mapped_column(
@@ -118,7 +127,7 @@ class Click(Base):
 
     surl: Mapped[str] = mapped_column(
         String(7),
-        ForeignKey("surl.surl", ondelete="CASCADE"),
+        ForeignKey("short_url.surl.surl", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -127,5 +136,3 @@ class Click(Base):
         server_default=func.now(),
         nullable=False,
     )
-
-

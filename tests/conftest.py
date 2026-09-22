@@ -1,40 +1,57 @@
-from typing import Generator
+from typing import Iterator
 
 import pytest
-from sqlalchemy import delete, schema
+from sqlalchemy import schema, text
+from sqlalchemy.orm import Session
 from testcontainers.community.postgres import PostgresContainer
 
-from short_url.api import ShortUrlApi
 from short_url.database_manager import DatabaseManager
-from short_url.models import Base
+from short_url.models import Base, SCHEMA_NAME
+from short_url.unit_of_work import UnitOfWork
+
+TRUNCATE_QUERY: str = 'TRUNCATE TABLE "{schema}"."{table_name}" CASCADE;'
 
 
 @pytest.fixture(scope="session")
-def postgres_container() -> Generator[PostgresContainer, None, None]:
+def postgres_container() -> Iterator[PostgresContainer]:
     with PostgresContainer("postgres:16.2-alpine") as postgres:
         yield postgres
 
 
 @pytest.fixture(scope="session")
-def database_url(postgres_container: PostgresContainer) -> str:
-    database_url: str = postgres_container.get_connection_url()
-    database: DatabaseManager = DatabaseManager.testing(database_url)
-    with database._engine.connect() as conn:
-        conn.execute(schema.CreateSchema("short_url", if_not_exists=True))
+def database(postgres_container: PostgresContainer) -> Iterator[DatabaseManager]:
+    url: str = postgres_container.get_connection_url()
+    manager = DatabaseManager.testing(url)
+
+    with manager._engine.connect() as conn:
+        conn.execute(schema.CreateSchema(SCHEMA_NAME, if_not_exists=True))
         conn.commit()
-    Base.metadata.create_all(bind=database._engine)
-    database.close()
-    return database_url
+
+    Base.metadata.create_all(bind=manager._engine)
+
+    yield manager
+
+    manager.close()
 
 
 @pytest.fixture(scope="function")
-def api(database_url: str) -> Generator[ShortUrlApi, None, None]:
-    short_url_api: ShortUrlApi = ShortUrlApi.testing(database_url)
-    yield short_url_api
+def session(database: DatabaseManager) -> Iterator[Session]:
+    with database.get_session() as session:
+        yield session
+        session.rollback()
 
-    database: DatabaseManager = short_url_api._database
+
+@pytest.fixture(scope="function", autouse=True)
+def clean_tables(database: DatabaseManager) -> Iterator[None]:
+    yield  # Needs yield to so it runs after the test
     with database._engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
-            connection.execute(delete(table))
+            connection.execute(text(TRUNCATE_QUERY.format(
+                schema=SCHEMA_NAME,
+                table_name=table.name
+            )))
 
-    database.close()
+
+@pytest.fixture(scope="function")
+def uow(database: DatabaseManager) -> UnitOfWork:
+    return UnitOfWork(database)

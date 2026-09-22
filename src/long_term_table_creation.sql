@@ -4,7 +4,8 @@ CREATE TYPE short_url.surl_status AS ENUM ('ACTIVE', 'EXPIRED', 'RECLAIMED');
 
 CREATE TABLE IF NOT EXISTS short_url.users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL
+    email VARCHAR(255) UNIQUE NOT null,
+    balance NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS short_url.url (
@@ -22,11 +23,11 @@ CREATE TABLE IF NOT EXISTS short_url.surl (
     expires_at TIMESTAMP NOT NULL
 );
 
-CREATE TABLE clicks (
+CREATE TABLE short_url.clicks (
     id BIGSERIAL PRIMARY KEY,
-    surl VARCHAR(7) NOT NULL REFERENCES surl(surl) ON DELETE CASCADE,
+    surl VARCHAR(7) NOT NULL REFERENCES short_url.surl(surl) ON DELETE CASCADE,
     clicked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Group by surl, sorted by clicked at. Optimized for traffic calculations
-CREATE INDEX click_rate ON clicks (surl, clicked_at);
+CREATE INDEX click_rate ON short_url.clicks (surl, clicked_at);

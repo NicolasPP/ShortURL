@@ -59,11 +59,10 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
     setup_data(uow)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [
+        concurrent.futures.wait([
             executor.submit(add_surl_worker, database, 1, fixed, log),
             executor.submit(add_surl_worker, database, 2, fixed, log)
-        ]
-        concurrent.futures.wait(futures)
+        ])
 
     with uow.transaction() as session:
         user = UserRepository(session).get(EMAIL).value

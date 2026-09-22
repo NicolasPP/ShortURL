@@ -10,6 +10,11 @@ from short_url.repositories.result import Result
 
 @dataclass(slots=True, frozen=True)
 class UserRepository(Repository):
+    @staticmethod
+    def _get_user_query(email: str, lock: bool) -> Select[tuple[User]]:
+        if lock:
+            return Select(User).where(User.email == email).with_for_update()
+        return Select(User).where(User.email == email)
 
     def add(self, email: str) -> Result[User]:
         user = User(email=email)
@@ -20,9 +25,9 @@ class UserRepository(Repository):
         except (IntegrityError, DBAPIError) as err:
             return Result.failure(str(err))
 
-    def get(self, email: str) -> Result[User]:
+    def get(self, email: str, lock: bool = False) -> Result[User]:
         try:
-            query: Select[tuple[User]] = Select(User).where(User.email == email)
+            query: Select[tuple[User]] = UserRepository._get_user_query(email, lock)
             if (user := self._session.scalar(query)) is None:
                 return Result.failure(f"User with email: {email} not found")
 

@@ -7,7 +7,8 @@ SURL_SIZE: int = 7
 
 
 def generate_surl() -> Iterator[str]:
-    surl: str = "".join(
-        secrets.choice(AVAILABLE_CHARS) for _ in range(SURL_SIZE)
-    )
-    yield surl
+    while True:
+        surl: str = "".join(
+            secrets.choice(AVAILABLE_CHARS) for _ in range(SURL_SIZE)
+        )
+        yield surl

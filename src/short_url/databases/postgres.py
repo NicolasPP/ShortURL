@@ -11,7 +11,7 @@ POSTGRES_URL_TEMPLATE: str = "postgresql+psycopg2://{user_name}:{password}@{host
 
 
 @dataclass(slots=True, frozen=True)
-class DatabaseManager:
+class Postgres:
 
     @classmethod
     def production(cls) -> Self:
@@ -25,16 +25,16 @@ class DatabaseManager:
         )
         return cls(
             _database_url=database_url,
-            _engine=(engine := DatabaseManager._create_engine(database_url)),
-            _session_factory=DatabaseManager._create_session_factory(engine)
+            _engine=(engine := Postgres._create_engine(database_url)),
+            _session_factory=Postgres._create_session_factory(engine)
         )
 
     @classmethod
     def testing(cls, database_url: str) -> Self:
         return cls(
             _database_url=database_url,
-            _engine=(engine := DatabaseManager._create_engine(database_url)),
-            _session_factory=DatabaseManager._create_session_factory(engine)
+            _engine=(engine := Postgres._create_engine(database_url)),
+            _session_factory=Postgres._create_session_factory(engine)
         )
 
     @staticmethod

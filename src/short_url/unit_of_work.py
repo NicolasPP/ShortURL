@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Iterator, overload
 
 from short_url.api import ShortUrlApi
-from short_url.database_manager import DatabaseManager
+from short_url.databases import Postgres
 
 
 class NestedTransactionError(RuntimeError):
@@ -15,7 +15,7 @@ class NestedTransactionError(RuntimeError):
 
 @dataclass(slots=True)
 class UnitOfWork:
-    _database: DatabaseManager
+    _postgres: Postgres
     _session_active: bool = field(init=False, default=False)
 
     @overload
@@ -27,7 +27,7 @@ class UnitOfWork:
         if self._session_active:
             raise NestedTransactionError()
 
-        with self._database.get_session() as session:
+        with self._postgres.get_session() as session:
             self._session_active = True
             api: ShortUrlApi = ShortUrlApi(session)
             try:

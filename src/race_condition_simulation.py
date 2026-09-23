@@ -6,7 +6,7 @@ from logging import Formatter, INFO, Logger, StreamHandler, getLogger
 from sqlalchemy import text
 
 from short_url.config_manager import ConfigManager
-from short_url.database_manager import DatabaseManager
+from short_url.databases import Postgres
 from short_url.models import Url, User
 from short_url.repositories.surl_repository import SURL_COST
 from short_url.unit_of_work import UnitOfWork
@@ -25,8 +25,8 @@ def setup_data(uow: UnitOfWork) -> None:
         assert not api.urls.add(URL).failed, "Expected get url not to fail"
 
 
-def add_surl_worker(database: DatabaseManager, request_id: int, fixed: bool, log: Logger) -> None:
-    uow: UnitOfWork = UnitOfWork(database)
+def add_surl_worker(postgres: Postgres, request_id: int, fixed: bool, log: Logger) -> None:
+    uow: UnitOfWork = UnitOfWork(postgres)
     with uow.transaction() as api:
         user: User = api.users.get(EMAIL, fixed).value
         url: Url = api.urls.get(URL).value
@@ -44,15 +44,15 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
     log.info("Initial balance for %s: $5.00", EMAIL)
     log.info("Launching 2 concurrent requests to mint SURLs simultaneously...")
 
-    database: DatabaseManager = DatabaseManager.production()
-    uow: UnitOfWork = UnitOfWork(database)
+    postgres: Postgres = Postgres.production()
+    uow: UnitOfWork = UnitOfWork(postgres)
     clean_data(uow)
     setup_data(uow)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         concurrent.futures.wait([
-            executor.submit(add_surl_worker, database, 1, fixed, log),
-            executor.submit(add_surl_worker, database, 2, fixed, log)
+            executor.submit(add_surl_worker, postgres, 1, fixed, log),
+            executor.submit(add_surl_worker, postgres, 2, fixed, log)
         ])
 
     with uow.transaction() as api:

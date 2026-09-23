@@ -5,7 +5,7 @@ from sqlalchemy import schema, text
 from sqlalchemy.orm import Session
 from testcontainers.community.postgres import PostgresContainer
 
-from short_url.database_manager import DatabaseManager
+from short_url.databases import Postgres
 from short_url.models import Base, SCHEMA_NAME
 from short_url.unit_of_work import UnitOfWork
 
@@ -19,32 +19,32 @@ def postgres_container() -> Iterator[PostgresContainer]:
 
 
 @pytest.fixture(scope="session")
-def database(postgres_container: PostgresContainer) -> Iterator[DatabaseManager]:
+def postgres(postgres_container: PostgresContainer) -> Iterator[Postgres]:
     url: str = postgres_container.get_connection_url()
-    manager = DatabaseManager.testing(url)
+    pg: Postgres = Postgres.testing(url)
 
-    with manager._engine.connect() as conn:
+    with pg._engine.connect() as conn:
         conn.execute(schema.CreateSchema(SCHEMA_NAME, if_not_exists=True))
         conn.commit()
 
-    Base.metadata.create_all(bind=manager._engine)
+    Base.metadata.create_all(bind=pg._engine)
 
-    yield manager
+    yield pg
 
-    manager.close()
+    pg.close()
 
 
 @pytest.fixture(scope="function")
-def session(database: DatabaseManager) -> Iterator[Session]:
-    with database.get_session() as session:
+def session(postgres: Postgres) -> Iterator[Session]:
+    with postgres.get_session() as session:
         yield session
         session.rollback()
 
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_tables(database: DatabaseManager) -> Iterator[None]:
+def clean_tables(postgres: Postgres) -> Iterator[None]:
     yield  # Needs yield to so it runs after the test
-    with database._engine.begin() as connection:
+    with postgres._engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
             connection.execute(text(TRUNCATE_QUERY.format(
                 schema=SCHEMA_NAME,
@@ -53,5 +53,5 @@ def clean_tables(database: DatabaseManager) -> Iterator[None]:
 
 
 @pytest.fixture(scope="function")
-def uow(database: DatabaseManager) -> UnitOfWork:
-    return UnitOfWork(database)
+def uow(postgres: Postgres) -> UnitOfWork:
+    return UnitOfWork(postgres)

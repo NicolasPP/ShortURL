@@ -8,7 +8,6 @@ from sqlalchemy import text
 from short_url.config_manager import ConfigManager
 from short_url.database_manager import DatabaseManager
 from short_url.models import Url, User
-from short_url.repositories import SurlRepository, UrlRepository, UserRepository
 from short_url.repositories.surl_repository import SURL_COST
 from short_url.unit_of_work import UnitOfWork
 

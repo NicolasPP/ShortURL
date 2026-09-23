@@ -1,6 +1,6 @@
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
-from typing import Iterator
+from typing import Iterator, overload
 
 from short_url.api import ShortUrlApi
 from short_url.database_manager import DatabaseManager
@@ -18,6 +18,10 @@ class UnitOfWork:
     _database: DatabaseManager
     _session_active: bool = field(init=False, default=False)
 
+    @overload
+    def transaction(self) -> AbstractContextManager[ShortUrlApi]:
+        ...
+
     @contextmanager
     def transaction(self) -> Iterator[ShortUrlApi]:
         if self._session_active:
@@ -25,8 +29,8 @@ class UnitOfWork:
 
         with self._database.get_session() as session:
             self._session_active = True
+            api: ShortUrlApi = ShortUrlApi(session)
             try:
-                api: ShortUrlApi = ShortUrlApi(session)
                 yield api
 
                 if session.is_active:

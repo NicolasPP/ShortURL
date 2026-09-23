@@ -1,4 +1,4 @@
-from short_url.databases.postgres import Postgres
+from short_url.databases.postgres_database import Postgres
 
 __all__ = [
     "Postgres",

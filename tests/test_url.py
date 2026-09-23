@@ -20,7 +20,6 @@ def test_add_url_failure(uow: UnitOfWork) -> None:
     with uow.transaction() as api:
         url: Result[Url] = api.urls.add(TEST_URL)
         assert not url.failed, "Expected add_url to be successful"
-        url_hash: str = url.value.url_hash
 
     with uow.transaction() as api:
         duplicate_url: Result[Url] = api.urls.add(TEST_URL)

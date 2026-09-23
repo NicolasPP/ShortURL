@@ -65,7 +65,7 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
         ])
 
     with uow.transaction() as session:
-        user = UserRepository(session).get(EMAIL).value
+        user: User = UserRepository(session).get(EMAIL).value
         log.info("--- FINAL STATE ---")
         log.info(f"Final User Balance: $%s", user.balance)
         log.info(f"Total SURLs created for user: %s", len(user.surls))

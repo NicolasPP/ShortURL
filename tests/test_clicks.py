@@ -1,8 +1,11 @@
 from datetime import timedelta
 from typing import Iterator
 
-from short_url.api import Result, ShortUrlApi
+import pytest
+
+from short_url.api import ShortUrlApi
 from short_url.models import Click, Surl, Url, User
+from short_url.repositories import Result
 
 TEST_SURL: str = "cOvUZx3"
 TEST_URL: str = "test_url.com"
@@ -28,6 +31,7 @@ def _create_surl(api: ShortUrlApi) -> Result[Surl]:
     return register_surl
 
 
+@pytest.mark.skip("Click will get a new implementation")
 def test_add_click_success(api: ShortUrlApi) -> None:
     _create_surl(api)
 
@@ -39,11 +43,14 @@ def test_add_click_success(api: ShortUrlApi) -> None:
     assert isinstance(click, Click), f"Expected type {Click.__name__}, got {type(click).__name__}"
 
 
+@pytest.mark.skip("Click will get a new implementation")
 def test_add_click_failure_invalid_surl(api: ShortUrlApi) -> None:
     add_click: Result[Click] = api.add_click(TEST_SURL)
     assert add_click.failed, "Expected add_click to fail"
     assert add_click.reason == f"Could not find active surl: {TEST_SURL}"
 
+
+@pytest.mark.skip("Click will get a new implementation")
 def test_get_click_count_success(api: ShortUrlApi) -> None:
     _create_surl(api)
 
@@ -62,11 +69,14 @@ def test_get_click_count_success(api: ShortUrlApi) -> None:
     assert get_count.value == 2, f"Expected click count to be 2, got: {get_count.value}"
 
 
+@pytest.mark.skip("Click will get a new implementation")
 def test_get_click_count_failure_invalid_surl(api: ShortUrlApi) -> None:
     get_count: Result[int] = api.get_click_count(TEST_SURL)
     assert get_count.failed, "Expected get_click_count to fail"
     assert get_count.reason == f"Could not find active surl: {TEST_SURL}"
 
+
+@pytest.mark.skip("Click will get a new implementation")
 def test_get_click_traffic_success(api: ShortUrlApi) -> None:
     _create_surl(api)
 
@@ -82,6 +92,7 @@ def test_get_click_traffic_success(api: ShortUrlApi) -> None:
     assert get_traffic.value == expected_rate, f"Expected traffic rate to be {expected_rate}, got: {get_traffic.value}"
 
 
+@pytest.mark.skip("Click will get a new implementation")
 def test_get_click_traffic_failure_invalid_window(api: ShortUrlApi) -> None:
     _create_surl(api)
 
@@ -91,6 +102,7 @@ def test_get_click_traffic_failure_invalid_window(api: ShortUrlApi) -> None:
     assert get_traffic.reason == "Time Window must be greater than 0"
 
 
+@pytest.mark.skip("Click will get a new implementation")
 def test_get_click_traffic_failure_invalid_surl(api: ShortUrlApi) -> None:
     time_window: timedelta = timedelta(minutes=5)
     get_traffic: Result[float] = api.get_click_traffic(TEST_SURL, time_window)

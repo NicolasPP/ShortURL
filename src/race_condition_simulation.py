@@ -20,29 +20,21 @@ CLEAN_URLS: text = text("DELETE FROM short_url.url WHERE original_url = :url")
 
 
 def setup_data(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        urls: UrlRepository = UrlRepository(session)
-
-        user: User = users.add(EMAIL).value
+    with uow.transaction() as api:
+        user: User = api.users.add(EMAIL).value
         user.balance = Decimal(SURL_COST)
-        assert not urls.add(URL).failed, "Expected get url not to fail"
-        session.commit()
+        assert not api.urls.add(URL).failed, "Expected get url not to fail"
 
 
 def add_surl_worker(database: DatabaseManager, request_id: int, fixed: bool, log: Logger) -> None:
     uow: UnitOfWork = UnitOfWork(database)
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        urls: UrlRepository = UrlRepository(session)
-
-        user: User = users.get(EMAIL, fixed).value
-        url: Url = urls.get(URL).value
+    with uow.transaction() as api:
+        user: User = api.users.get(EMAIL, fixed).value
+        url: Url = api.urls.get(URL).value
 
         time.sleep(0.1)
 
-        surls: SurlRepository = SurlRepository(session)
-        if (surl := surls.add(url=url, user=user)).failed:
+        if (surl := api.surls.add(url=url, user=user)).failed:
             log.error("Request %s: FAILED -> %s", request_id, surl.reason)
         else:
             log.info("Request %s: SUCCESS -> Created surl %s", request_id, surl.value.surl)
@@ -64,17 +56,17 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
             executor.submit(add_surl_worker, database, 2, fixed, log)
         ])
 
-    with uow.transaction() as session:
-        user: User = UserRepository(session).get(EMAIL).value
+    with uow.transaction() as api:
+        user: User = api.users.get(EMAIL).value
         log.info("--- FINAL STATE ---")
         log.info(f"Final User Balance: $%s", user.balance)
         log.info(f"Total SURLs created for user: %s", len(user.surls))
 
 
 def clean_data(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        session.execute(CLEAN_USERS, {"email": EMAIL})
-        session.execute(CLEAN_URLS, {"url": URL})
+    with uow.transaction() as api:
+        api.session.execute(CLEAN_USERS, {"email": EMAIL})
+        api.session.execute(CLEAN_URLS, {"url": URL})
 
 
 def setup_logger(name: str) -> Logger:

@@ -1,8 +1,6 @@
 from decimal import Decimal
 from typing import Iterator
 
-import pytest
-
 from short_url.models import Surl, SurlStatus, Url, User
 from short_url.repositories import Result
 from short_url.repositories.surl_repository import MAX_SURL_RETRIES
@@ -87,6 +85,7 @@ def test_get_surl_success(uow: UnitOfWork) -> None:
         assert surl.url_hash == url.url_hash, f"Expected url_hash to be {url.url_hash}, got {surl.url_hash}"
         assert surl.status == SurlStatus.ACTIVE, f"Expected status to be {SurlStatus.ACTIVE}, got {surl.status}"
         assert isinstance(surl, Surl), f"Expected type {Surl.__name__}, got {type(surl).__name__}"
+
 
 def test_get_surl_failure(uow: UnitOfWork) -> None:
     with uow.transaction() as api:

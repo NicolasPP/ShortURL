@@ -1,14 +1,13 @@
 from short_url.models import User
-from short_url.repositories import Result, UserRepository
+from short_url.repositories import Result
 from short_url.unit_of_work import UnitOfWork
 
 TEST_EMAIL: str = "add_user_test@email.com"
 
 
 def test_add_user_success(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        user_repo = UserRepository(session)
-        result: Result[User] = user_repo.add(TEST_EMAIL)
+    with uow.transaction() as api:
+        result: Result[User] = api.users.add(TEST_EMAIL)
         assert not result.failed, "Expected add to succeed"
         assert isinstance(result.value, User), \
             f"Expected type {User.__name__}, got {type(result.value).__name__}"
@@ -18,13 +17,11 @@ def test_add_user_success(uow: UnitOfWork) -> None:
 
 
 def test_add_user_duplicate_failure(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        assert not users.add(TEST_EMAIL).failed, "Expected initial add to succeed"
+    with uow.transaction() as api:
+        assert not api.users.add(TEST_EMAIL).failed, "Expected initial add to succeed"
 
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        duplicate: Result[User] = users.add(TEST_EMAIL)
+    with uow.transaction() as api:
+        duplicate: Result[User] = api.users.add(TEST_EMAIL)
         assert duplicate.failed, "Expected duplicate email insertion to fail"
         correct_reason: bool = "users_email_key" in duplicate.reason \
                                or "unique constraint" in duplicate.reason.lower()
@@ -32,13 +29,11 @@ def test_add_user_duplicate_failure(uow: UnitOfWork) -> None:
 
 
 def test_get_user_success(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        users.add(TEST_EMAIL)
+    with uow.transaction() as api:
+        api.users.add(TEST_EMAIL)
 
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        user: Result[User] = users.get(TEST_EMAIL)
+    with uow.transaction() as api:
+        user: Result[User] = api.users.get(TEST_EMAIL)
         assert not user.failed, "Expected get_user to succeed"
         assert isinstance(user.value, User), \
             f"Expected value type {User.__name__}, got {type(user.value).__name__}"
@@ -47,9 +42,8 @@ def test_get_user_success(uow: UnitOfWork) -> None:
 
 
 def test_get_user_not_found(uow: UnitOfWork) -> None:
-    with uow.transaction() as session:
-        users: UserRepository = UserRepository(session)
-        user: Result[User] = users.get("nonexistent@email.com")
+    with uow.transaction() as api:
+        user: Result[User] = api.users.get("nonexistent@email.com")
 
         assert user.failed, "Expected get_user to fail for non-existent user"
         assert user.reason == "User with email: nonexistent@email.com not found"

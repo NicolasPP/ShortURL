@@ -53,6 +53,7 @@ class ConfigManager:
 
 
 POSTGRES_SECTION: str = "POSTGRES"
+REDIS_SECTION: str = "REDIS"
 
 
 class PostgresParams(NamedTuple):
@@ -63,5 +64,16 @@ class PostgresParams(NamedTuple):
     host: str
 
 
+class RedisParams(NamedTuple):
+    host: str
+    port: int
+    user_name: str
+    password: str
+
+
 def get_postgres_params() -> PostgresParams:
     return ConfigManager.get().get_params(POSTGRES_SECTION, PostgresParams)
+
+
+def get_redis_params() -> RedisParams:
+    return ConfigManager.get().get_params(REDIS_SECTION, RedisParams)

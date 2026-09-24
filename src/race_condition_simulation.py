@@ -9,7 +9,7 @@ from short_url.config_manager import ConfigManager
 from short_url.databases import Postgres
 from short_url.models import Url, User
 from short_url.repositories.surl_repository import SURL_COST
-from short_url.unit_of_work import UnitOfWork
+from short_url.unit_of_work import PostgresUnitOfWork
 
 EMAIL: str = "user@email.com"
 URL: str = "https://example.com/long-page"
@@ -18,7 +18,7 @@ CLEAN_USERS: text = text("DELETE FROM short_url.users WHERE email = :email")
 CLEAN_URLS: text = text("DELETE FROM short_url.url WHERE original_url = :url")
 
 
-def setup_data(uow: UnitOfWork) -> None:
+def setup_data(uow: PostgresUnitOfWork) -> None:
     with uow.transaction() as api:
         user: User = api.users.add(EMAIL).value
         user.balance = Decimal(SURL_COST)
@@ -26,7 +26,7 @@ def setup_data(uow: UnitOfWork) -> None:
 
 
 def add_surl_worker(postgres: Postgres, request_id: int, fixed: bool, log: Logger) -> None:
-    uow: UnitOfWork = UnitOfWork(postgres)
+    uow: PostgresUnitOfWork = PostgresUnitOfWork(postgres)
     with uow.transaction() as api:
         user: User = api.users.get(EMAIL, fixed).value
         url: Url = api.urls.get(URL).value
@@ -45,7 +45,7 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
     log.info("Launching 2 concurrent requests to mint SURLs simultaneously...")
 
     postgres: Postgres = Postgres.production()
-    uow: UnitOfWork = UnitOfWork(postgres)
+    uow: PostgresUnitOfWork = PostgresUnitOfWork(postgres)
     clean_data(uow)
     setup_data(uow)
 
@@ -62,7 +62,7 @@ def simulate_race_condition(log: Logger, fixed: bool) -> None:
         log.info(f"Total SURLs created for user: %s", len(user.surls))
 
 
-def clean_data(uow: UnitOfWork) -> None:
+def clean_data(uow: PostgresUnitOfWork) -> None:
     with uow.transaction() as api:
         api.session.execute(CLEAN_USERS, {"email": EMAIL})
         api.session.execute(CLEAN_URLS, {"url": URL})

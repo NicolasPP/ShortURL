@@ -7,7 +7,7 @@ from testcontainers.community.postgres import PostgresContainer
 
 from short_url.databases import Postgres
 from short_url.models import Base, SCHEMA_NAME
-from short_url.unit_of_work import UnitOfWork
+from short_url.unit_of_work import PostgresUnitOfWork
 
 TRUNCATE_QUERY: str = 'TRUNCATE TABLE "{schema}"."{table_name}" CASCADE;'
 
@@ -53,5 +53,5 @@ def clean_tables(postgres: Postgres) -> Iterator[None]:
 
 
 @pytest.fixture(scope="function")
-def uow(postgres: Postgres) -> UnitOfWork:
-    return UnitOfWork(postgres)
+def postgres_uow(postgres: Postgres) -> PostgresUnitOfWork:
+    return PostgresUnitOfWork(postgres)

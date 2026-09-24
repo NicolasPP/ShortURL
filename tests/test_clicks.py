@@ -3,7 +3,7 @@ from typing import Iterator
 
 import pytest
 
-from short_url.api import ShortUrlApi
+from short_url.api import PostgresShortUrlApi
 from short_url.models import Click, Surl, Url, User
 from short_url.repositories import Result
 
@@ -17,7 +17,7 @@ def dummy_surl_generator() -> Iterator[str]:
         yield TEST_SURL
 
 
-def _create_surl(api: ShortUrlApi) -> Result[Surl]:
+def _create_surl(api: PostgresShortUrlApi) -> Result[Surl]:
     add_user: Result[User] = api.add_user(TEST_EMAIL)
     assert not add_user.failed, "Expected add_user to succeed"
 
@@ -32,7 +32,7 @@ def _create_surl(api: ShortUrlApi) -> Result[Surl]:
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_add_click_success(api: ShortUrlApi) -> None:
+def test_add_click_success(api: PostgresShortUrlApi) -> None:
     _create_surl(api)
 
     add_click: Result[Click] = api.add_click(TEST_SURL)
@@ -44,14 +44,14 @@ def test_add_click_success(api: ShortUrlApi) -> None:
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_add_click_failure_invalid_surl(api: ShortUrlApi) -> None:
+def test_add_click_failure_invalid_surl(api: PostgresShortUrlApi) -> None:
     add_click: Result[Click] = api.add_click(TEST_SURL)
     assert add_click.failed, "Expected add_click to fail"
     assert add_click.reason == f"Could not find active surl: {TEST_SURL}"
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_get_click_count_success(api: ShortUrlApi) -> None:
+def test_get_click_count_success(api: PostgresShortUrlApi) -> None:
     _create_surl(api)
 
     get_count_empty: Result[int] = api.get_click_count(TEST_SURL)
@@ -70,14 +70,14 @@ def test_get_click_count_success(api: ShortUrlApi) -> None:
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_get_click_count_failure_invalid_surl(api: ShortUrlApi) -> None:
+def test_get_click_count_failure_invalid_surl(api: PostgresShortUrlApi) -> None:
     get_count: Result[int] = api.get_click_count(TEST_SURL)
     assert get_count.failed, "Expected get_click_count to fail"
     assert get_count.reason == f"Could not find active surl: {TEST_SURL}"
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_get_click_traffic_success(api: ShortUrlApi) -> None:
+def test_get_click_traffic_success(api: PostgresShortUrlApi) -> None:
     _create_surl(api)
 
     for _ in range(10):
@@ -93,7 +93,7 @@ def test_get_click_traffic_success(api: ShortUrlApi) -> None:
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_get_click_traffic_failure_invalid_window(api: ShortUrlApi) -> None:
+def test_get_click_traffic_failure_invalid_window(api: PostgresShortUrlApi) -> None:
     _create_surl(api)
 
     time_window: timedelta = timedelta(minutes=0)
@@ -103,7 +103,7 @@ def test_get_click_traffic_failure_invalid_window(api: ShortUrlApi) -> None:
 
 
 @pytest.mark.skip("Click will get a new implementation")
-def test_get_click_traffic_failure_invalid_surl(api: ShortUrlApi) -> None:
+def test_get_click_traffic_failure_invalid_surl(api: PostgresShortUrlApi) -> None:
     time_window: timedelta = timedelta(minutes=5)
     get_traffic: Result[float] = api.get_click_traffic(TEST_SURL, time_window)
     assert get_traffic.failed, "Expected get_click_traffic to fail"

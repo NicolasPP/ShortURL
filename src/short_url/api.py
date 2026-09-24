@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from redis import ConnectionPool
 from sqlalchemy.orm import Session
 
 from short_url.repositories import ClickRepository, SurlRepository, UrlRepository, UserRepository
@@ -14,7 +15,7 @@ class InvalidSessionError(RuntimeError):
 
 
 @dataclass(slots=True, init=True)
-class ShortUrlApi:
+class PostgresShortUrlApi:
     _session: Optional[Session]
     _users: Optional[UserRepository] = field(init=False, default=None)
     _urls: Optional[UrlRepository] = field(init=False, default=None)
@@ -62,3 +63,10 @@ class ShortUrlApi:
         self._urls = None
         self._surls = None
         self._clicks = None
+
+
+@dataclass(slots=True, init=True)
+class RedisShortUrlApi:
+    _pool: Optional[ConnectionPool]
+    _surls: Optional[SurlRepository] = field(init=False, default=None)
+    _clicks: Optional[ClickRepository] = field(init=False, default=None)

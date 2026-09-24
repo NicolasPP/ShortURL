@@ -5,12 +5,12 @@ from sqlalchemy import Select, func
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.models import Click, Surl
-from short_url.repositories.repository import Repository
+from short_url.repositories.repository import PostgresRepository
 from short_url.repositories.result import Result
 
 
 @dataclass(slots=True, frozen=True)
-class ClickRepository(Repository):
+class PostgresClickRepository(PostgresRepository):
     def add(self, surl: Surl) -> Result[Click]:
         click: Click = Click(
             surl=surl.surl,

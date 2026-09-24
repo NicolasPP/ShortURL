@@ -4,12 +4,12 @@ from sqlalchemy import Select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.models import User
-from short_url.repositories.repository import Repository
+from short_url.repositories.repository import PostgresRepository
 from short_url.repositories.result import Result
 
 
 @dataclass(slots=True, frozen=True)
-class UserRepository(Repository):
+class PostgresUserRepository(PostgresRepository):
     @staticmethod
     def _get_user_query(email: str, lock: bool) -> Select[tuple[User]]:
         if lock:
@@ -27,7 +27,7 @@ class UserRepository(Repository):
 
     def get(self, email: str, lock: bool = False) -> Result[User]:
         try:
-            query: Select[tuple[User]] = UserRepository._get_user_query(email, lock)
+            query: Select[tuple[User]] = PostgresUserRepository._get_user_query(email, lock)
             if (user := self._session.scalar(query)) is None:
                 return Result.failure(f"User with email: {email} not found")
 

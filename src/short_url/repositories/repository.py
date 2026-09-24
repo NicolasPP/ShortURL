@@ -4,5 +4,5 @@ from sqlalchemy.orm import Session
 
 
 @dataclass(slots=True, frozen=True)
-class Repository:
+class PostgresRepository:
     _session: Session

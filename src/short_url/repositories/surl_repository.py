@@ -7,7 +7,7 @@ from sqlalchemy import Select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.models import Surl, SurlStatus, Url, User
-from short_url.repositories.repository import Repository
+from short_url.repositories.repository import PostgresRepository
 from short_url.repositories.result import Result
 from short_url.surl_generator import generate_surl
 
@@ -19,7 +19,7 @@ INSUFFICIENT_BALANCE_ERR: str = "Insufficient funds: Balance is {user_balance:.2
 
 
 @dataclass(slots=True, frozen=True)
-class SurlRepository(Repository):
+class PostgresSurlRepository(PostgresRepository):
     _surl_generator: ClassVar[Iterator[str]] = generate_surl()
 
     def add(self, url: Url, user: User, gen: Optional[Iterator[str]] = None) -> Result[Surl]:
@@ -30,7 +30,7 @@ class SurlRepository(Repository):
             ))
 
         expiry_duration: timedelta = timedelta(days=30)
-        gen = gen or SurlRepository._surl_generator
+        gen = gen or PostgresSurlRepository._surl_generator
 
         for _ in range(MAX_SURL_RETRIES):
             surl_code: str = next(gen)

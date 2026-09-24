@@ -7,12 +7,12 @@ from sqlalchemy import Select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.models import Url
-from short_url.repositories.repository import Repository
+from short_url.repositories.repository import PostgresRepository
 from short_url.repositories.result import Result
 
 
 @dataclass(slots=True, frozen=True)
-class UrlRepository(Repository):
+class PostgresUrlRepository(PostgresRepository):
     @staticmethod
     def hash_url(url: str) -> str:
         payload: Buffer = url.encode("utf-8")
@@ -20,7 +20,7 @@ class UrlRepository(Repository):
 
     def add(self, url_code: str) -> Result[Url]:
         url: Url = Url(
-            url_hash=UrlRepository.hash_url(url_code),
+            url_hash=PostgresUrlRepository.hash_url(url_code),
             original_url=url_code,
             created_at=datetime.now(timezone.utc)
         )
@@ -32,7 +32,7 @@ class UrlRepository(Repository):
             return Result.failure(str(err))
 
     def get(self, url_code: str) -> Result[Url]:
-        url_hash: str = UrlRepository.hash_url(url_code)
+        url_hash: str = PostgresUrlRepository.hash_url(url_code)
         try:
             query: Select[tuple[Url]] = Select(Url).where(Url.url_hash == url_hash)
             if (url := self._session.scalar(query)) is None:

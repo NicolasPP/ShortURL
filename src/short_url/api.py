@@ -1,10 +1,16 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from redis import ConnectionPool
+from redis import Redis
 from sqlalchemy.orm import Session
 
-from short_url.repositories import PostgresClickRepository, PostgresSurlRepository, PostgresUrlRepository, PostgresUserRepository
+from short_url.repositories import (
+    PostgresClickRepository,
+    PostgresSurlRepository,
+    PostgresUrlRepository,
+    PostgresUserRepository,
+    RedisSurlRepository
+)
 
 
 class InvalidSessionError(RuntimeError):
@@ -12,6 +18,13 @@ class InvalidSessionError(RuntimeError):
 
     def __init__(self) -> None:
         super().__init__("Session is no longer valid!")
+
+
+class InvalidPoolError(RuntimeError):
+    """Raised when user tries to use Api class after its been invalidated"""
+
+    def __init__(self) -> None:
+        super().__init__("Pool is no longer valid!")
 
 
 @dataclass(slots=True, init=True)
@@ -67,6 +80,23 @@ class PostgresShortUrlApi:
 
 @dataclass(slots=True, init=True)
 class RedisShortUrlApi:
-    _pool: Optional[ConnectionPool]
-    _surls: Optional[PostgresSurlRepository] = field(init=False, default=None)
-    _clicks: Optional[PostgresClickRepository] = field(init=False, default=None)
+    _client: Optional[Redis]
+    _surls: Optional[RedisSurlRepository] = field(init=False, default=None)
+
+    @property
+    def client(self) -> Redis:
+        if self._client is None:
+            raise InvalidPoolError()
+
+        return self._client
+
+    @property
+    def surls(self) -> RedisSurlRepository:
+        if self._surls is None:
+            self._surls = RedisSurlRepository.new(self.client)
+
+        return self._surls
+
+    def invalidate(self) -> None:
+        self._client = None
+        self._surls = None

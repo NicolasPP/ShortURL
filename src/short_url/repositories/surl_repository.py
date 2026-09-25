@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import ClassVar, Iterator, Optional
+from typing import ClassVar, Iterator, Optional, Self
 
+from redis import Redis
 from sqlalchemy import Select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from short_url.models import Surl, SurlStatus, Url, User
-from short_url.repositories.repository import PostgresRepository
+from short_url.repositories.repository import PostgresRepository, RedisRepository
 from short_url.repositories.result import Result
 from short_url.surl_generator import generate_surl
 
@@ -72,3 +73,26 @@ class PostgresSurlRepository(PostgresRepository):
 
         except DBAPIError as err:
             return Result.failure(str(err))
+
+
+@dataclass(slots=True, frozen=True)
+class RedisSurlRepository(RedisRepository):
+    NAME: ClassVar[str] = "SURL"
+
+    @classmethod
+    def new(cls, client: Redis) -> Self:
+        return cls(
+            _client=client,
+            _name=RedisSurlRepository.NAME
+        )
+
+    def add(self, surl: str, url: str) -> None:
+        key: str = self.get_key(surl)
+        self._client.set(key, url)
+
+    def resolve(self, surl: str) -> Result[str]:
+        key: str = self.get_key(surl)
+        if (url := self._client.get(key)) is None:
+            return Result.failure(f"Surl: {surl} not found")
+
+        return Result.success(url)

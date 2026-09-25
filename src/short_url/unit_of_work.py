@@ -2,7 +2,7 @@ from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field
 from typing import Iterator, overload
 
-from short_url.api import PostgresShortUrlApi
+from short_url.api import PostgresShortUrlApi, RedisShortUrlApi
 from short_url.databases import Postgres, RedisDatabase
 
 
@@ -38,40 +38,37 @@ class PostgresUnitOfWork:
 
             except Exception:
                 session.rollback()
+                self._session_active = False
+                raise
+
+            finally:
+                self._session_active = False
+                api.invalidate()
+
+
+@dataclass(slots=True)
+class RedisUnitOfWork:
+    _redis: RedisDatabase
+    _session_active: bool = field(init=False, default=False)
+
+    @overload
+    def transaction(self) -> AbstractContextManager[RedisShortUrlApi]:
+        ...
+
+    @contextmanager
+    def transaction(self) -> Iterator[RedisShortUrlApi]:
+        if self._session_active:
+            raise NestedTransactionError()
+
+        with self._redis.get_client() as client:
+            self._session_active = True
+            api: RedisShortUrlApi = RedisShortUrlApi(client)
+            try:
+                yield api
+
+            except Exception:
                 raise
 
             finally:
                 api.invalidate()
                 self._session_active = False
-
-
-# @dataclass(slots=True)
-# class RedisUnitOfWork:
-#     _redis: RedisDatabase
-#     _session_active: bool = field(init=False, default=False)
-#
-#     @overload
-#     def transaction(self) -> AbstractContextManager[ShortUrlApi]:
-#         ...
-#
-#     @contextmanager
-#     def transaction(self) -> Iterator[ShortUrlApi]:
-#         if self._session_active:
-#             raise NestedTransactionError()
-#
-#         with self._redis.get_client() as session:
-#             self._session_active = True
-#             api: ShortUrlApi = ShortUrlApi(session)
-#             try:
-#                 yield api
-#
-#                 if session.is_active:
-#                     session.commit()
-#
-#             except Exception:
-#                 session.rollback()
-#                 raise
-#
-#             finally:
-#                 api.invalidate()
-#                 self._session_active = False
